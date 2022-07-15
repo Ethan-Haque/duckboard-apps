@@ -24,6 +24,7 @@
 #define EXPRESSIONS_BUFF_SIZE 64
 int input_count = 0;                            // stores the count of the filled in expressions_buffer.
 char expressions_buffer[EXPRESSIONS_BUFF_SIZE]; // stores the typed out string
+char last_answer[EXPRESSIONS_BUFF_SIZE];        // stores the previous answer
 
 // TinyExpr 
 typedef struct te_expr {
@@ -85,7 +86,7 @@ enum layer_codes {
     L3_PLUS,
     L3_EQUALS,
     L3_DOT,
-    L3_PRINT_EQUATION,
+    L3_PRINT_ANS,
     L3_POWER,
     L3_MOD,
     L3_EXIT,
@@ -112,14 +113,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                 RGB_HUI, RGB_SAI, RGB_VAI,
                 RGB_HUD, RGB_SAD, RGB_VAD, KC_TRNS,
                 KC_TRNS, KC_TRNS, KC_TRNS,
-        TG(2),  QK_BOOT,   KC_TRNS, KC_TRNS, KC_TRNS),
+        TG(2),  QK_BOOT, KC_TRNS, KC_TRNS, KC_TRNS),
 
     [3] = LAYOUT(
-                L3_PRINT_EQUATION,  L3_SLASH,   L3_MULTIPLY,    L3_MINUS,
-                L3_7,               L3_8,       L3_9,           
-                L3_4,               L3_5,       L3_6,           L3_PLUS,
-                L3_1,               L3_2,       L3_3,          
-        L3_EXIT,L3_0,               L3_0,       L3_DOT,         L3_EQUALS),
+                L3_EXIT, L3_SLASH, L3_MULTIPLY, L3_MINUS,
+                L3_7,    L3_8,     L3_9,           
+                L3_4,    L3_5,     L3_6,        L3_PLUS,
+                L3_1,    L3_2,     L3_3,          
+    L3_PRINT_ANS,L3_0,   L3_0,     L3_DOT,      L3_EQUALS),
 
 };
 
@@ -226,14 +227,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 double result = te_interp(expressions_buffer, 0);
                 char output_string[EXPRESSIONS_BUFF_SIZE];
                 dtostrf(result, 1, 2, output_string);
-                send_string(output_string);
+                strcpy(last_answer,output_string);
                 input_count = 0;
             }
             break;
-        case L3_PRINT_EQUATION:
+        case L3_PRINT_ANS:
             if (record->event.pressed) {
-                if(input_count>0){
-                    send_string(expressions_buffer);
+                if(input_count<=0){
+                    send_string(last_answer);
                 }
             }
             break;
@@ -241,6 +242,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if(record->event.pressed){
                 input_count = 0;
                 expressions_buffer[0] = '\0';
+                last_answer[0] = '\0';
                 layer_move(0);
             }
             break;
@@ -696,53 +698,13 @@ double te_interp(const char *expression, int *error) {
 
 //OLED
 #ifdef OLED_ENABLE
-oled_rotation_t oled_init_user(oled_rotation_t rotation) { return OLED_ROTATION_270; }
-
-
-// WPM-responsive animation stuff here
-#define IDLE_FRAMES 2
-#define IDLE_SPEED 40 // below this wpm value your animation will idle
-
-#define ANIM_FRAME_DURATION 200 // how long each frame lasts in ms
-// #define SLEEP_TIMER 60000 // should sleep after this period of 0 wpm, needs fixing
-#define ANIM_SIZE 636 // number of bytes in array, minimize for adequate firmware size, max is 1024
-
-uint32_t anim_timer = 0;
-uint32_t anim_sleep = 0;
-uint8_t current_idle_frame = 0;
-
-// Credit to u/Pop-X- for the initial code. You can find his commit here https://github.com/qmk/qmk_firmware/pull/9264/files#diff-303f6e3a7a5ee54be0a9a13630842956R196-R333.
-static void render_anim(void) {
-    static const char PROGMEM idle[IDLE_FRAMES][ANIM_SIZE] = {
-        {
-        0,  0,192,192,192,192,192,192,192,248,248, 30, 30,254,254,248,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  3,  3,  3,  3,  3,255,255,255,255,255,255,255,128,128,128,128,128,128,128,128,128,128,128,128,128,128,128,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,127,127,255,255,255,255,255,159,159,135,135,129,129,129, 97, 97, 25, 25,  7,  7,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1, 97, 97,127,  1,  1, 97, 97,127,  1,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0
-        },
-        {
-        0,  0,128,128,128,128,128,128,128,240,240, 60, 60,252,252,240,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  7,  7,  7,  7,  7,255,255,254,254,255,255,255,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,255,255,255,255,255,255,255, 63, 63, 15, 15,  3,  3,  3,195,195, 51, 51, 15, 15,  3,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  3,  3, 99, 99,127,  3,  3, 99, 99,127,  3,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0
-        }
-    };
-
-    //assumes 1 frame prep stage
-    void animation_phase(void) {
-            current_idle_frame = (current_idle_frame + 1) % IDLE_FRAMES;
-            oled_write_raw_P(idle[abs((IDLE_FRAMES-1)-current_idle_frame)], ANIM_SIZE);
-    }
-
-        if(timer_elapsed32(anim_timer) > ANIM_FRAME_DURATION) {
-            anim_timer = timer_read32();
-            animation_phase();
-        }
-    }
 
 bool oled_task_user(void) {
-        render_anim();
         oled_set_cursor(0,6);
-        oled_write_P(PSTR("DUCK\nBOARD\n"), false);
-    oled_write_P(PSTR("-----\n"), false);
-    // Host Keyboard Layer Status
+    // Layer Status
     oled_write_P(PSTR("MODE\n"), false);
     oled_write_P(PSTR("\n"), false);
-
+    
     switch (get_highest_layer(layer_state)) {
         case 0:
             oled_write_P(PSTR("BASE\n"), false);
@@ -753,6 +715,15 @@ bool oled_task_user(void) {
         case 2:
             oled_write_P(PSTR("RGB\n"), false);
             break;
+        case 3:
+            oled_write_P(PSTR("CALC\n"), false);
+            break;
+    }
+    
+    if(input_count>0){
+        oled_write_ln(expressions_buffer,false);
+    }else{
+        oled_write_ln(last_answer,false);
     }
     return false;
 }
