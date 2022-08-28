@@ -1,9 +1,11 @@
 # Duckboard Apps
 
-
 ## Calculator
+Simple calculator functionality built into the numpad's keymap.
 
-#### Usage 
+### Usage
+Current equation/answer is displayed on OLED display.
+The answer can be outputted at any time with the PRINT_ANS key.
 
 https://user-images.githubusercontent.com/40015195/186285716-761a81e4-b0c2-4e70-9bcc-a67bb3b70213.mp4
 
