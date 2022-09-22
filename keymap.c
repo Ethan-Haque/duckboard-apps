@@ -26,7 +26,7 @@ int input_count = 0;                            // stores the count of the fille
 char expressions_buffer[EXPRESSIONS_BUFF_SIZE]; // stores the typed out string
 char last_answer[EXPRESSIONS_BUFF_SIZE];        // stores the previous answer
 
-// TinyExpr 
+// TinyExpr definitions
 typedef struct te_expr {
     int type;
     union {double value; const double *bound; const void *function;};
@@ -87,8 +87,6 @@ enum layer_codes {
     L3_EQUALS,
     L3_DOT,
     L3_PRINT_ANS,
-    L3_POWER,
-    L3_MOD,
     L3_EXIT,
 };
 
@@ -212,16 +210,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 write_char_to_buff('.');
             }
             break;
-        case L3_POWER:
-            if (record->event.pressed) {
-                write_char_to_buff('^');
-            }
-            break;
-        case L3_MOD:
-            if (record->event.pressed) {
-                write_char_to_buff('%');
-            }
-            break;
         case L3_EQUALS:
             if (record->event.pressed) {
                 double result = te_interp(expressions_buffer, 0);
@@ -254,13 +242,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 void write_char_to_buff(char c){
     if(input_count+1 < EXPRESSIONS_BUFF_SIZE){
         expressions_buffer[input_count] = c;
-        expressions_buffer[input_count+1] = '\0';
+        expressions_buffer[input_count+1] = '\0'; // null terminator marks end of string
         input_count++;
     }
 }
 
 
-//TinyExpr Functions 
+/*----------------------
+|  TinyExpr Functions - https://github.com/codeplea/tinyexpr
+-----------------------*/
 #ifndef NAN
 #define NAN (0.0/0.0)
 #endif
@@ -696,7 +686,9 @@ double te_interp(const char *expression, int *error) {
 }
 
 
-//OLED
+/*----------------------
+|  OLED
+-----------------------*/
 #ifdef OLED_ENABLE
 
 bool oled_task_user(void) {
@@ -720,10 +712,10 @@ bool oled_task_user(void) {
             break;
     }
     
-    if(input_count>0){
-        oled_write_ln(expressions_buffer,false);
+    if(input_count>0){ // check for current input
+        oled_write_ln(expressions_buffer,false); // output expression
     }else{
-        oled_write_ln(last_answer,false);
+        oled_write_ln(last_answer,false);  // output result
     }
     return false;
 }
